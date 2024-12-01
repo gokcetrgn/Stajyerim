@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "288082259767",
+    "project_id": "stajyerim-cbaea",
+    "storage_bucket": "stajyerim-cbaea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288082259767:android:6647be090085e86a0df4b2",
+        "android_client_info": {
+          "package_name": "com.gen.stajyerim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3fBjVFSbZF8APWQJZNwv4a_uCOgNd2GE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
