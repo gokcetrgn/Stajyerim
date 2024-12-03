@@ -15,11 +15,23 @@ fun AppNavigation(
     authRepository: AuthRepository
 ) {
     NavHost(navController = navController, startDestination = "landing") {
-        composable("landing") { LandingPage(navController) }
-        composable("login") { LoginScreen(navController, authViewModel) }
 
-        composable("comporstu") { CompOrStu(navController) }
+        // Açılış ekranı
+        composable("landing") {
+            LandingPage(navController)
+        }
 
+        // Login ekranı
+        composable("login") {
+            LoginScreen(navController, authViewModel)
+        }
+
+        // Öğrenci veya şirket seçimi ekranı
+        composable("comporstu") {
+            CompOrStu(navController)
+        }
+
+        // Öğrenci kayıt ekranı
         composable("signup/student") {
             SignUpScreen(
                 navController = navController,
@@ -27,6 +39,8 @@ fun AppNavigation(
                 authRepository = authRepository
             )
         }
+
+        // Şirket kayıt ekranı
         composable("signup/company") {
             SignUpScreen(
                 navController = navController,
@@ -35,9 +49,36 @@ fun AppNavigation(
             )
         }
 
+        // Ana sayfa
         composable("home?userType={userType}") { backStackEntry ->
-            val userType = backStackEntry.arguments?.getString("userType")
-            HomePage(userType)
+            val userType = backStackEntry.arguments?.getString("userType") ?: "unknown"
+            HomePage(userType = userType, navController = navController)
         }
+
+        // İlan oluşturma ekranı
+        composable("createPost") {
+            CreatePostScreen(navController = navController)
+        }
+
+        // Profil ekranı
+        composable("profile") {
+            ProfileScreen(navController = navController, authViewModel = authViewModel)
+        }
+
+        // Mesajlar ekranı
+        composable("messages") {
+            MessageScreen(navController = navController)
+        }
+
+        // İlanlar
+        composable("appliedPosts") {
+            AppliedPostsScreen(navController = navController)
+        }
+
+        // Yayınlanan İlanlar
+        composable("publishedPosts") {
+            PublishedPostsScreen(navController = navController)
+        }
+
     }
 }

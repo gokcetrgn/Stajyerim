@@ -72,7 +72,7 @@ fun LandingPage(navController: NavHostController) {
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
-                    navController.navigate("home") //
+                    navController.navigate("home")
                 }
             )
         }

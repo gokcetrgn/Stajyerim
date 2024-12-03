@@ -27,17 +27,18 @@ import com.gen.stajyerim.R
 import com.gen.stajyerim.ui.components.BackButton
 import com.gen.stajyerim.ui.components.CustomTextField
 import com.gen.stajyerim.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(
     navController: NavHostController,
-    viewModel: AuthViewModel? = null
+    viewModel: AuthViewModel? = null,
 ) {
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val userType = remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize()){
+    Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.login), // Resim dosyasını belirtin
             contentDescription = "Landing Page Background",
@@ -54,16 +55,25 @@ fun LoginScreen(
 
             Text("Giriş Yap", style = MaterialTheme.typography.headlineLarge)
 
-            CustomTextField(value = email.value, onValueChange = { email.value = it }, label = "Email")
-            CustomTextField(value = password.value, onValueChange = { password.value = it }, label = "Şifre", isPassword = true)
+            CustomTextField(
+                value = email.value,
+                onValueChange = { email.value = it },
+                label = "Email"
+            )
+            CustomTextField(
+                value = password.value,
+                onValueChange = { password.value = it },
+                label = "Şifre",
+                isPassword = true
+            )
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
-
+                    viewModel?.login(email.value, password.value)
                     navController.navigate("home/${userType.value}")
                 },
-                enabled = userType.value.isNotEmpty()
+                enabled = email.value.isNotEmpty() && password.value.isNotEmpty()
             ) {
                 Text("Giriş Yap")
             }

@@ -42,6 +42,14 @@ fun SignUpScreen(
     userType: String, // "student" veya "company"
     authRepository: AuthRepository
 ) {
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity ?: run {
+        println("Hata: Bu ekran bir FragmentActivity üzerinde çalıştırılmalı.")
+        return
+    }
+
+
+
     val name = remember { mutableStateOf("") }
     val surname = remember { mutableStateOf("") }
     val companyName = remember { mutableStateOf("") }
@@ -53,27 +61,24 @@ fun SignUpScreen(
     val verificationCode = remember { mutableStateOf("") }
 
     var isCodeSent by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val activity = context as? FragmentActivity ?: run {
-        println("Hata: Bu ekran bir FragmentActivity üzerinde çalıştırılmalı.")
-        return
-    }
+    var verificationId by remember { mutableStateOf("") }
+    var isVerificationCompleted by remember { mutableStateOf(false) }
 
     val callbacks = remember {
         object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
             override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                isVerificationCompleted = true
                 println("Doğrulama başarılı: $credential")
-                navController.navigate("home") // Doğrulama sonrası yönlendirme
             }
 
             override fun onVerificationFailed(e: FirebaseException) {
                 println("Doğrulama hatası: ${e.message}")
             }
 
-            override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
-                println("Kod gönderildi: $verificationId")
+            override fun onCodeSent(verId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                verificationId = verId
                 isCodeSent = true
+                println("Kod gönderildi: $verId")
             }
         }
     }
@@ -122,38 +127,82 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(onClick = {
-                val userData = mutableMapOf<String, Any>(
-                    "email" to email.value,
-                    "name" to name.value,
-                    "surname" to surname.value,
-                    "userType" to userType
-                )
+                if (isCodeSent && verificationCode.value.isNotEmpty()) {
+                    val credential = PhoneAuthProvider.getCredential(
+                        verificationId,
+                        verificationCode.value // Doğrulama kodu
+                    )
 
-                if (userType == "company") {
-                    userData["profession"] = profession.value
-                    userData["companyName"] = companyName.value
-                    userData["companyNumber"] = companyNumber.value
-                }
+                    authRepository.firebaseAuth.signInWithCredential(credential)
+                        .addOnCompleteListener(activity) { task ->
+                            if (task.isSuccessful) {
+                                // Kayıt işlemi başarıyla tamamlandığında
+                                val userData = mutableMapOf<String, Any>(
+                                    "email" to email.value,
+                                    "name" to name.value,
+                                    "surname" to surname.value,
+                                    "userType" to userType
+                                )
 
-                authRepository.registerUser(
-                    email = email.value,
-                    password = password.value,
-                    userData = userData,
-                    onComplete = { result ->
-                        result.onSuccess {
-                            PhoneAuthProvider.verifyPhoneNumber(
-                                PhoneAuthOptions.newBuilder(authRepository.firebaseAuth)
-                                    .setPhoneNumber(phoneNumber.value) // Telefon numarası
-                                    .setTimeout(60L, TimeUnit.SECONDS) // Zaman aşımı
-                                    .setActivity(activity) // Activity bağlamı
-                                    .setCallbacks(callbacks) // Callbacks
-                                    .build()
-                            )
-                        }.onFailure { exception ->
-                            println("Hata: ${exception.message}")
+                                if (userType == "company") {
+                                    userData["profession"] = profession.value
+                                    userData["companyName"] = companyName.value
+                                    userData["companyNumber"] = companyNumber.value
+                                }
+
+                                authRepository.registerUser(
+                                    email = email.value,
+                                    password = password.value,
+                                    userData = userData,
+                                    onComplete = { result ->
+                                        result.onSuccess {
+                                            // Kayıt sonrası yönlendirme
+                                            navController.navigate("home?userType=$userType")
+                                        }.onFailure { exception ->
+                                            println("Hata: ${exception.message}")
+                                        }
+                                    }
+                                )
+                            } else {
+                                println("Telefon numarası doğrulaması başarısız.")
+                            }
                         }
+                } else {
+                    // Telefon doğrulama işlemi yapılmamışsa, kullanıcı kaydını başlat
+                    val userData = mutableMapOf<String, Any>(
+                        "email" to email.value,
+                        "name" to name.value,
+                        "surname" to surname.value,
+                        "userType" to userType
+                    )
+
+                    if (userType == "company") {
+                        userData["profession"] = profession.value
+                        userData["companyName"] = companyName.value
+                        userData["companyNumber"] = companyNumber.value
                     }
-                )
+
+                    authRepository.registerUser(
+                        email = email.value,
+                        password = password.value,
+                        userData = userData,
+                        onComplete = { result ->
+                            result.onSuccess {
+                                // Doğrulama kodu gönderme işlemi başlat
+                                PhoneAuthProvider.verifyPhoneNumber(
+                                    PhoneAuthOptions.newBuilder(authRepository.firebaseAuth)
+                                        .setPhoneNumber(phoneNumber.value) // Telefon numarası
+                                        .setTimeout(60L, TimeUnit.SECONDS) // Zaman aşımı
+                                        .setActivity(activity) // Activity bağlamı
+                                        .setCallbacks(callbacks) // Callbacks
+                                        .build()
+                                )
+                            }.onFailure { exception ->
+                                println("Hata: ${exception.message}")
+                            }
+                        }
+                    )
+                }
             }) {
                 Text(if (isCodeSent) "Kodu Doğrula" else "Kayıt Ol")
             }
