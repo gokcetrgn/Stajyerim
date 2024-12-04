@@ -14,8 +14,15 @@ fun AppNavigation(
     authViewModel: AuthViewModel,
     authRepository: AuthRepository
 ) {
-    NavHost(navController = navController, startDestination = "landing") {
+    NavHost(navController = navController, startDestination = "control") {
+
+        composable("control") {
+            ControlScreen(navController, authViewModel, authRepository)
+        }
+
         composable("landing") { LandingPage(navController) }
+
+        // Login Screen
         composable("login") { LoginScreen(navController, authViewModel) }
 
         composable("comporstu") { CompOrStu(navController) }
@@ -35,18 +42,18 @@ fun AppNavigation(
             )
         }
 
-        composable("home/student")
-        {
+        composable("home/student") {
             HomePage(userType = "student")
         }
-        composable("home/company")
-        {
+        composable("home/company") {
             HomePage(userType = "company")
         }
 
-        composable("home?userType={userType}") { backStackEntry ->
+        composable("home/{userType}") { backStackEntry ->
             val userType = backStackEntry.arguments?.getString("userType")
-            HomePage(userType)
+            if (userType != null) {
+                HomePage(userType)
+            }
         }
     }
 }
