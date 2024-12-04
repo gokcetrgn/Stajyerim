@@ -21,19 +21,12 @@ fun AppNavigation(
             ControlScreen(navController, authViewModel, authRepository)
         }
 
-        composable("landing") { LandingPage(navController) }
-
         // Login Screen
         composable("login") { LoginScreen(navController, authViewModel) }
 
         // Açılış ekranı
         composable("landing") {
             LandingPage(navController)
-        }
-
-        // Login ekranı
-        composable("login") {
-            LoginScreen(navController, authViewModel)
         }
 
         // Öğrenci veya şirket seçimi ekranı
