@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.gen.stajyerim.R
 import com.gen.stajyerim.data.repository.AuthRepository
+import com.gen.stajyerim.ui.backgrounds.SignUpBackground
 import com.gen.stajyerim.ui.components.BackButton
 import com.gen.stajyerim.ui.components.CustomTextField
 
@@ -43,12 +44,7 @@ fun SignUpScreen(
     val password = remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.signup),
-            contentDescription = "Sign Up Page Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
-        )
+        SignUpBackground()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -56,7 +52,7 @@ fun SignUpScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Kayıt Ol", style = MaterialTheme.typography.headlineSmall)
+            Text("Kayıt Ol", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(30.dp))
             CustomTextField(value = name.value, onValueChange = { name.value = it }, label = "Ad")
             CustomTextField(value = surname.value, onValueChange = { surname.value = it }, label = "Soyad")

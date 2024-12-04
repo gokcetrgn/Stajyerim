@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.gen.stajyerim.R
+import com.gen.stajyerim.ui.backgrounds.LoginBackground
 import com.gen.stajyerim.ui.components.BackButton
 import com.gen.stajyerim.ui.components.CustomTextField
 import com.gen.stajyerim.viewmodel.AuthViewModel
@@ -40,12 +41,7 @@ fun LoginScreen(
     val authState = viewModel.authState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.login),
-            contentDescription = "Login Page Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
-        )
+        LoginBackground()
         Column(
             modifier = Modifier
                 .fillMaxSize()
