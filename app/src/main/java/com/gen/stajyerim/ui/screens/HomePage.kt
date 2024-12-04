@@ -146,7 +146,7 @@ fun HomePage(
                                 job = job,
                                 onApplyClick = {
                                     coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("${job.title} ilanına başvuruldu!")
+                                        snackbarHostState.showSnackbar("${job.title} ilanına başvuruldu!") // job nesnesine doğrudan erişim
                                     }
                                 },
                                 onReactClick = { reaction ->
@@ -183,7 +183,6 @@ fun HomePage(
         }
     )
 }
-
 
 @Composable
 fun DrawerContent(navController: NavHostController) {
