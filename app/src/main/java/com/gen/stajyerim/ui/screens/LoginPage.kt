@@ -30,17 +30,20 @@ import com.gen.stajyerim.ui.backgrounds.LoginBackground
 import com.gen.stajyerim.ui.components.BackButton
 import com.gen.stajyerim.ui.components.CustomTextField
 import com.gen.stajyerim.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(
     navController: NavHostController,
-    viewModel: AuthViewModel
+    viewModel: AuthViewModel? = null,
+
 ) {
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val authState = viewModel.authState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
+
         LoginBackground()
         Column(
             modifier = Modifier
@@ -51,16 +54,24 @@ fun LoginScreen(
         ) {
             Text("Giriş Yap", style = MaterialTheme.typography.headlineLarge)
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            CustomTextField(value = email.value, onValueChange = { email.value = it }, label = "Email")
-            CustomTextField(value = password.value, onValueChange = { password.value = it }, label = "Şifre", isPassword = true)
-
+            CustomTextField(
+                value = email.value,
+                onValueChange = { email.value = it },
+                label = "Email"
+            )
+            CustomTextField(
+                value = password.value,
+                onValueChange = { password.value = it },
+                label = "Şifre",
+                isPassword = true
+            )       
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
-                    viewModel.login(email.value, password.value)
+                    viewModel?.login(email.value, password.value)
+                    navController.navigate("home/${userType.value}")
+
                 },
                 enabled = email.value.isNotEmpty() && password.value.isNotEmpty()
             ) {
