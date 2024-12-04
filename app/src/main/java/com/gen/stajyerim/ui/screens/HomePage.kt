@@ -12,10 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun HomePage(userType: String? = null) {
+fun HomePage(navController: NavHostController, userType: String? = null) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -32,6 +33,9 @@ fun HomePage(userType: String? = null) {
         Spacer(modifier = Modifier.height(20.dp))
         Button(onClick = {
             FirebaseAuth.getInstance().signOut()
+            navController.navigate("landing") {
+                popUpTo("home/{userType}") { inclusive = true } // HomePage'i temizler
+            }
         }) {
             Text("Çıkış Yap")
         }

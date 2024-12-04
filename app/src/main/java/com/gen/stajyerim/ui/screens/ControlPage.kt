@@ -24,21 +24,18 @@ fun ControlScreen(
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
-            // Kullanıcı oturumu varsa kullanıcı tipi alınır
             viewModel.fetchUserType { userType, error ->
                 if (userType != null) {
                     navController.navigate("home/$userType") {
                         popUpTo("control") { inclusive = true }
                     }
                 } else {
-                    // Kullanıcı tipi alınamadıysa hata ekranı veya login ekranına yönlendirebilirsiniz
                     navController.navigate("login") {
                         popUpTo("control") { inclusive = true }
                     }
                 }
             }
         } else {
-            // Kullanıcı oturumu yoksa landing ekranına yönlendirme yapılır
             navController.navigate("landing") {
                 popUpTo("control") { inclusive = true }
             }

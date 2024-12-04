@@ -43,16 +43,16 @@ fun AppNavigation(
         }
 
         composable("home/student") {
-            HomePage(userType = "student")
+            HomePage(navController,userType = "student")
         }
         composable("home/company") {
-            HomePage(userType = "company")
+            HomePage(navController,userType = "company")
         }
 
         composable("home/{userType}") { backStackEntry ->
             val userType = backStackEntry.arguments?.getString("userType")
             if (userType != null) {
-                HomePage(userType)
+                HomePage(navController,userType)
             }
         }
     }
