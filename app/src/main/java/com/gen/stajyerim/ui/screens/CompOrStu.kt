@@ -30,7 +30,7 @@ fun CompOrStu(navController: NavHostController) {
     Box(modifier = Modifier.fillMaxSize() ){
         Image(
             painter = painterResource(id = R.drawable.landing),
-            contentDescription = "Landing Page Background",
+            contentDescription = "CompOrStu Page Background",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )

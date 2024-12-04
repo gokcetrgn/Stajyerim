@@ -35,6 +35,15 @@ fun AppNavigation(
             )
         }
 
+        composable("home/student")
+        {
+            HomePage(userType = "student")
+        }
+        composable("home/company")
+        {
+            HomePage(userType = "company")
+        }
+
         composable("home?userType={userType}") { backStackEntry ->
             val userType = backStackEntry.arguments?.getString("userType")
             HomePage(userType)

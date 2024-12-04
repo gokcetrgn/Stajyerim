@@ -1,7 +1,6 @@
 package com.gen.stajyerim.ui.screens
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,25 +19,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavHostController
 import com.gen.stajyerim.R
 import com.gen.stajyerim.data.repository.AuthRepository
 import com.gen.stajyerim.ui.components.BackButton
 import com.gen.stajyerim.ui.components.CustomTextField
-import com.google.firebase.FirebaseException
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
-import java.util.concurrent.TimeUnit
+
 
 @Composable
 fun SignUpScreen(
     navController: NavHostController,
-    userType: String, // "student" veya "company"
+    userType: String,
     authRepository: AuthRepository
 ) {
     val name = remember { mutableStateOf("") }
@@ -49,39 +41,11 @@ fun SignUpScreen(
     val profession = remember { mutableStateOf("") }
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
-    val phoneNumber = remember { mutableStateOf("") }
-    val verificationCode = remember { mutableStateOf("") }
-
-    var isCodeSent by remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val activity = context as? FragmentActivity ?: run {
-        println("Hata: Bu ekran bir FragmentActivity üzerinde çalıştırılmalı.")
-        return
-    }
-
-    val callbacks = remember {
-        object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                println("Doğrulama başarılı: $credential")
-                navController.navigate("home") // Doğrulama sonrası yönlendirme
-            }
-
-            override fun onVerificationFailed(e: FirebaseException) {
-                println("Doğrulama hatası: ${e.message}")
-            }
-
-            override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
-                println("Kod gönderildi: $verificationId")
-                isCodeSent = true
-            }
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.signup),
-            contentDescription = "Landing Page Background",
+            contentDescription = "Sign Up Page Background",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )
@@ -111,14 +75,6 @@ fun SignUpScreen(
                 isPassword = true
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            CustomTextField(value = phoneNumber.value, onValueChange = { phoneNumber.value = it }, label = "Telefon Numarası")
-
-            if (isCodeSent) {
-                CustomTextField(value = verificationCode.value, onValueChange = { verificationCode.value = it }, label = "Doğrulama Kodu")
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(onClick = {
@@ -128,12 +84,14 @@ fun SignUpScreen(
                     "surname" to surname.value,
                     "userType" to userType
                 )
+                println("A")
 
                 if (userType == "company") {
                     userData["profession"] = profession.value
                     userData["companyName"] = companyName.value
                     userData["companyNumber"] = companyNumber.value
                 }
+                println("B")
 
                 authRepository.registerUser(
                     email = email.value,
@@ -141,21 +99,15 @@ fun SignUpScreen(
                     userData = userData,
                     onComplete = { result ->
                         result.onSuccess {
-                            PhoneAuthProvider.verifyPhoneNumber(
-                                PhoneAuthOptions.newBuilder(authRepository.firebaseAuth)
-                                    .setPhoneNumber(phoneNumber.value) // Telefon numarası
-                                    .setTimeout(60L, TimeUnit.SECONDS) // Zaman aşımı
-                                    .setActivity(activity) // Activity bağlamı
-                                    .setCallbacks(callbacks) // Callbacks
-                                    .build()
-                            )
+                            println("Kullanıcı başarıyla oluşturuldu!")
+                            navController.navigate("login") // Başarı sonrası yönlendirme
                         }.onFailure { exception ->
                             println("Hata: ${exception.message}")
                         }
                     }
                 )
             }) {
-                Text(if (isCodeSent) "Kodu Doğrula" else "Kayıt Ol")
+                Text("Kayıt Ol")
             }
             Text(
                 text = "Hesabın var mı? Giriş Yap",

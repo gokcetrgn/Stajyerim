@@ -14,31 +14,6 @@ class AuthRepository(val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
 
     private val firestore = FirebaseFirestore.getInstance()
 
-    fun sendVerificationCode(
-        phoneNumber: String,
-        activity: FragmentActivity,
-        callbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks
-    ) {
-        val options = PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance())
-            .setPhoneNumber(phoneNumber)
-            .setTimeout(120L, TimeUnit.SECONDS)
-            .setActivity(activity)
-            .setCallbacks(callbacks)
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(options)
-    }
-
-
-    suspend fun verifyCode(verificationId: String, code: String): Result<Unit> {
-        return try {
-            val credential = PhoneAuthProvider.getCredential(verificationId, code)
-            firebaseAuth.signInWithCredential(credential).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
     fun registerUser(email: String, password: String, userData: Map<String, Any>, onComplete: (Result<Unit>) -> Unit) {
         firebaseAuth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
@@ -75,5 +50,18 @@ class AuthRepository(val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
 
     fun logout() {
         firebaseAuth.signOut()
+    }
+
+    suspend fun getUserType(): Result<String> {
+        return try {
+            val uid = firebaseAuth.currentUser?.uid
+                ?: throw Exception("Kullanıcı oturum açmamış.")
+            val snapshot = firestore.collection("users").document(uid).get().await()
+            val userType = snapshot.getString("userType")
+                ?: throw Exception("Kullanıcı tipi bulunamadı.")
+            Result.success(userType)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
