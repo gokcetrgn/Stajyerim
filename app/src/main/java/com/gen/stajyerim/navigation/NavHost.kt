@@ -14,7 +14,17 @@ fun AppNavigation(
     authViewModel: AuthViewModel,
     authRepository: AuthRepository
 ) {
-    NavHost(navController = navController, startDestination = "landing") {
+
+    NavHost(navController = navController, startDestination = "control") {
+
+        composable("control") {
+            ControlScreen(navController, authViewModel, authRepository)
+        }
+
+        composable("landing") { LandingPage(navController) }
+
+        // Login Screen
+        composable("login") { LoginScreen(navController, authViewModel) }
 
         // Açılış ekranı
         composable("landing") {
@@ -49,6 +59,7 @@ fun AppNavigation(
             )
         }
 
+
         // Ana sayfa
         composable("home?userType={userType}") { backStackEntry ->
             val userType = backStackEntry.arguments?.getString("userType") ?: "unknown"
@@ -58,6 +69,20 @@ fun AppNavigation(
         // İlan oluşturma ekranı
         composable("createPost") {
             CreatePostScreen(navController = navController)
+
+        composable("home/student") {
+            HomePage(navController,userType = "student")
+        }
+        composable("home/company") {
+            HomePage(navController,userType = "company")
+        }
+
+        composable("home/{userType}") { backStackEntry ->
+            val userType = backStackEntry.arguments?.getString("userType")
+            if (userType != null) {
+                HomePage(navController,userType)
+            }
+
         }
 
         // Profil ekranı

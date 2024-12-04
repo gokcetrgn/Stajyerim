@@ -33,6 +33,7 @@ import com.gen.stajyerim.ui.theme.Pink40
 import com.gen.stajyerim.ui.theme.Purple40
 import com.gen.stajyerim.ui.theme.PurpleGrey40
 import com.google.firebase.Firebase
+import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.launch
@@ -186,6 +187,7 @@ fun HomePage(
 
 @Composable
 fun DrawerContent(navController: NavHostController) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()

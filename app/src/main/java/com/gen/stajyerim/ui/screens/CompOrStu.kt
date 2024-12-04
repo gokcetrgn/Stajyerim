@@ -23,17 +23,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.gen.stajyerim.R
+import com.gen.stajyerim.ui.backgrounds.LandingPageBackground
 import com.gen.stajyerim.ui.components.BackButton
 
 @Composable
 fun CompOrStu(navController: NavHostController) {
     Box(modifier = Modifier.fillMaxSize() ){
-        Image(
-            painter = painterResource(id = R.drawable.landing),
-            contentDescription = "Landing Page Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
-        )
+        LandingPageBackground()
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
