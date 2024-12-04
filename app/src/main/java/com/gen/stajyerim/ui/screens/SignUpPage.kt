@@ -80,14 +80,12 @@ fun SignUpScreen(
                     "surname" to surname.value,
                     "userType" to userType
                 )
-                println("A")
 
                 if (userType == "company") {
                     userData["profession"] = profession.value
                     userData["companyName"] = companyName.value
                     userData["companyNumber"] = companyNumber.value
                 }
-                println("B")
 
                 authRepository.registerUser(
                     email = email.value,

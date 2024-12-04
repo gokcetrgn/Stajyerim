@@ -14,6 +14,7 @@ fun AppNavigation(
     authViewModel: AuthViewModel,
     authRepository: AuthRepository
 ) {
+
     NavHost(navController = navController, startDestination = "control") {
 
         composable("control") {
@@ -25,8 +26,22 @@ fun AppNavigation(
         // Login Screen
         composable("login") { LoginScreen(navController, authViewModel) }
 
-        composable("comporstu") { CompOrStu(navController) }
+        // Açılış ekranı
+        composable("landing") {
+            LandingPage(navController)
+        }
 
+        // Login ekranı
+        composable("login") {
+            LoginScreen(navController, authViewModel)
+        }
+
+        // Öğrenci veya şirket seçimi ekranı
+        composable("comporstu") {
+            CompOrStu(navController)
+        }
+
+        // Öğrenci kayıt ekranı
         composable("signup/student") {
             SignUpScreen(
                 navController = navController,
@@ -34,6 +49,8 @@ fun AppNavigation(
                 authRepository = authRepository
             )
         }
+
+        // Şirket kayıt ekranı
         composable("signup/company") {
             SignUpScreen(
                 navController = navController,
@@ -42,18 +59,47 @@ fun AppNavigation(
             )
         }
 
+
+            composable("home?userType={userType}") { backStackEntry ->
+            val userType = backStackEntry.arguments?.getString("userType") ?: "unknown"
+            HomePage(userType = userType, navController = navController)
+            }
+
         composable("home/student") {
-            HomePage(navController,userType = "student")
+            HomePage(navController, userType = "student")
         }
         composable("home/company") {
-            HomePage(navController,userType = "company")
+            HomePage(navController, userType = "company")
         }
 
-        composable("home/{userType}") { backStackEntry ->
-            val userType = backStackEntry.arguments?.getString("userType")
-            if (userType != null) {
-                HomePage(navController,userType)
+        composable("home/unknown") {
+            HomePage(navController, userType = "company")
+        }
+
+
+            composable("createPost") {
+                CreatePostScreen(navController = navController)
             }
+
+            // Profil ekranı
+            composable("profile") {
+                ProfileScreen(navController = navController, authViewModel = authViewModel)
+            }
+
+            // Mesajlar ekranı
+            composable("messages") {
+                MessageScreen(navController = navController)
+            }
+
+            // İlanlar
+            composable("appliedPosts") {
+                AppliedPostsScreen(navController = navController)
+            }
+
+            // Yayınlanan İlanlar
+            composable("publishedPosts") {
+                PublishedPostsScreen(navController = navController)
+            }
+
         }
     }
-}
