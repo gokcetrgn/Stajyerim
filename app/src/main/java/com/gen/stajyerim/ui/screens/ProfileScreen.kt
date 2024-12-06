@@ -5,4 +5,4 @@ import androidx.navigation.NavHostController
 import com.gen.stajyerim.viewmodel.AuthViewModel
 
 @Composable
-fun ProfileScreen(navController: NavHostController, authViewModel: AuthViewModel) {}
+fun ProfileScreen(navController: NavHostController, authViewModel: AuthViewModel, userId: String) {}
