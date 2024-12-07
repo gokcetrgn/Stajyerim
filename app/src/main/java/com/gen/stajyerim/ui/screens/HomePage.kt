@@ -29,6 +29,8 @@ import com.gen.stajyerim.model.Applicant
 import com.gen.stajyerim.model.Job
 import com.gen.stajyerim.model.Reaction
 import com.gen.stajyerim.model.ReactionInfo
+import com.gen.stajyerim.ui.search.SearchManager
+import com.gen.stajyerim.ui.search.debounceSearch
 import com.gen.stajyerim.ui.theme.PurpleGrey40
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -46,16 +48,30 @@ fun HomePage(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val searchManager = remember { SearchManager(FirebaseFirestore.getInstance()) }
 
     var searchQuery by remember { mutableStateOf("") }
-
-    // Firestore'dan gelen ilanları tutan state
     val jobList = remember { mutableStateOf(listOf<Job>()) }
 
-    // Firestore referansı
     val db = FirebaseFirestore.getInstance()
 
-    // Firestore'dan ilanları çekme
+    debounceSearch(
+        query = searchQuery,
+        onSearchTriggered = { query ->
+            searchManager.searchJobs(
+                query = query,
+                onResult = { jobs ->
+                    jobList.value = jobs
+                },
+                onError = { exception ->
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Hata: ${exception.message}")
+                    }
+                }
+            )
+        }
+    )
+
     LaunchedEffect(Unit) {
         db.collection("posts")
             .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -69,7 +85,7 @@ fun HomePage(
 
                 if (snapshot != null) {
                     val jobs = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(Job::class.java) // Job nesnesine dönüştürülüyor
+                        doc.toObject(Job::class.java)
                     }
                     jobList.value = jobs
                 }
@@ -132,7 +148,20 @@ fun HomePage(
                 ) {
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { query -> searchQuery = query },
+                        onValueChange = { query ->
+                            searchQuery = query
+                            searchManager.searchJobs(
+                                query = query,
+                                onResult = { jobs ->
+                                    jobList.value = jobs
+                                },
+                                onError = { exception ->
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Hata: ${exception.message}")
+                                    }
+                                }
+                            )
+                        },
                         label = { Text("Ara (İlan, Kişi, Şirket)") },
                         leadingIcon = {
                             Icon(imageVector = Icons.Default.Search, contentDescription = "Ara")
@@ -155,14 +184,12 @@ fun HomePage(
                                 onApplyClick = {
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar("${job.title} ilanına başvuruldu!")
-                                        // Başvuru verisini Firestore'a ekle
-                                        addApplicant(job) // Başvuru ekleme fonksiyonu
+                                        addApplicant(job)
                                     }
                                 },
                                 onReactClick = { reaction ->
                                     coroutineScope.launch {
-                                        // Tepki verisini Firestore'a ekle
-                                        addReaction(job, reaction) // Tepki ekleme fonksiyonu
+                                        addReaction(job, reaction)
                                     }
                                 },
                                 onCommentClick = {
@@ -292,18 +319,15 @@ fun JobItem(
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
-    // reactionState ve applicantState değişkenlerini Firestore'dan almak
     var reactionState by remember { mutableStateOf<Reaction?>(null) }
     var applicantState by remember { mutableStateOf(false) }  // Başvuru durumu
     val jobTitle = job.title ?: ""
 
-    // Firestore'dan beğeni ve başvuru bilgisini alıyoruz
     LaunchedEffect(jobTitle) {
         val postRef = db.collection("posts").document(jobTitle)
         val snapshot = postRef.get().await()
 
         if (snapshot.exists()) {
-            // Reaksiyonları kontrol et
             val reactions = snapshot.get("reactions") as? List<Map<String, Any>>
             reactions?.forEach { reaction ->
                 val userId = reaction["userId"] as? String
@@ -312,7 +336,6 @@ fun JobItem(
                 }
             }
 
-            // Başvuruları kontrol et
             val applicants = snapshot.get("applicants") as? List<Map<String, Any>>
             applicants?.forEach { applicant ->
                 val userId = applicant["userId"] as? String
@@ -333,7 +356,6 @@ fun JobItem(
         elevation = CardDefaults.elevatedCardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Başlık
             Text(
                 text = job.title ?: "İlan Başlığı",
                 style = MaterialTheme.typography.bodyLarge,
@@ -341,19 +363,17 @@ fun JobItem(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Başvur butonu
             Button(
                 onClick = {
                     if (currentUser == null) {
-                        showAlertDialog = true // Kullanıcı giriş yapmamışsa diyalog göster
+                        showAlertDialog = true
                     } else {
                         if (applicantState) {
-                            // Zaten başvurulmuşsa
                             showAlertDialog = true
                         } else {
                             addApplicant(job)
-                            applicantState = true // Başvuru durumu güncelleniyor
-                            onApplyClick() // Başvuru işlemi
+                            applicantState = true
+                            onApplyClick()
                         }
                     }
                 },
@@ -361,19 +381,19 @@ fun JobItem(
                     containerColor = Color(0xffba68c8),
                     contentColor = Color.White
                 ),
-                modifier = Modifier.fillMaxWidth() // Buton genişliğini karta uyacak şekilde ayarla
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Başvur")
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Reaksiyon butonları (Beğen / Beğenme)
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Beğen butonu
+
                 IconButton(
                     onClick = {
                         reactionState = if (reactionState == Reaction.Like) null else Reaction.Like
@@ -390,7 +410,6 @@ fun JobItem(
                     )
                 }
 
-                // Beğenme butonu
                 IconButton(
                     onClick = {
                         reactionState = if (reactionState == Reaction.Dislike) null else Reaction.Dislike
@@ -410,7 +429,6 @@ fun JobItem(
         }
     }
 
-    // Giriş yapılmadı uyarı dialog
     if (showAlertDialog) {
         AlertDialog(
             onDismissRequest = { showAlertDialog = false },
@@ -439,7 +457,6 @@ fun JobItem(
     }
 }
 
-// Firestore'a reaction bilgisi eklemek
 fun addReaction(job: Job, reaction: Reaction) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
@@ -447,7 +464,6 @@ fun addReaction(job: Job, reaction: Reaction) {
         val reactionInfo = ReactionInfo(userId = currentUserId, reaction = reaction.name)
         val postRef = FirebaseFirestore.getInstance().collection("posts").document(job.title ?: "")
 
-        // Belgeyi oluşturuyoruz
         postRef.set(
             mapOf(
                 "title" to job.title,
@@ -472,10 +488,8 @@ fun addApplicant(job: Job) {
         val applicant = Applicant(userId = currentUserId, userName = currentUserName)
         val postRef = FirebaseFirestore.getInstance().collection("posts").document(job.title ?: "")
 
-        // Belgeyi kontrol et
         postRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
-                // Eğer belge varsa applicants alanına başvuru ekle
                 postRef.update("applicants", FieldValue.arrayUnion(applicant))
                     .addOnSuccessListener {
                         Log.d("Firestore", "Başvuru başarıyla eklendi!")
@@ -484,7 +498,6 @@ fun addApplicant(job: Job) {
                         Log.e("Firestore", "Başvuru eklenemedi: ${e.localizedMessage}", e)
                     }
             } else {
-                // Belge yoksa, yeni belge oluştur ve başvuru ekle
                 postRef.set(
                     mapOf(
                         "title" to job.title,

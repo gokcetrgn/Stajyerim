@@ -1,8 +1,5 @@
 package com.gen.stajyerim.model
 
-import com.gen.stajyerim.ui.screens.Applicant
-import com.gen.stajyerim.ui.screens.Reaction
-import com.gen.stajyerim.ui.screens.ReactionInfo
 
 data class Job(
     val title: String? = null,
