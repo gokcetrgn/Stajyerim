@@ -17,11 +17,12 @@ fun AppNavigation(
 
     NavHost(navController = navController, startDestination = "control") {
 
+        // Control ekranı
         composable("control") {
             ControlScreen(navController, authViewModel, authRepository)
         }
 
-        // Login Screen
+        // Login ekranı
         composable("login") { LoginScreen(navController, authViewModel) }
 
         // Açılış ekranı
@@ -52,47 +53,51 @@ fun AppNavigation(
             )
         }
 
-
-            composable("home?userType={userType}") { backStackEntry ->
+        // Ana sayfa
+        composable("home?userType={userType}") { backStackEntry ->
             val userType = backStackEntry.arguments?.getString("userType") ?: "unknown"
             HomePage(userType = userType, navController = navController)
-            }
-
+        }
         composable("home/student") {
             HomePage(navController, userType = "student")
         }
         composable("home/company") {
             HomePage(navController, userType = "company")
         }
-
         composable("home/unknown") {
-            HomePage(navController, userType = "company")
+            HomePage(navController, userType = "unknown")
         }
 
+        // İlan oluşturma ekranı
+        composable("createPost") {
+            CreatePostScreen(navController = navController)
+        }
 
-            composable("createPost") {
-                CreatePostScreen(navController = navController)
-            }
+        // Profil ekranı
+        composable("profile?userId={userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ProfileScreen(navController = navController, authViewModel = authViewModel, userId = userId)
+        }
 
-            // Profil ekranı
-            composable("profile") {
-                ProfileScreen(navController = navController, authViewModel = authViewModel)
-            }
+        // Mesajlar ekranı
+        composable("messages") {
+            MessageScreen(navController = navController)
+        }
 
-            // Mesajlar ekranı
-            composable("messages") {
-                MessageScreen(navController = navController)
-            }
+        // Başvurulan İlanlar
+        composable("appliedPosts") {
+            AppliedPostsScreen(navController = navController)
+        }
 
-            // İlanlar
-            composable("appliedPosts") {
-                AppliedPostsScreen(navController = navController)
-            }
+        // Yayınlanan İlanlar
+        composable("publishedPosts") {
+            PublishedPostsScreen(navController = navController)
+        }
 
-            // Yayınlanan İlanlar
-            composable("publishedPosts") {
-                PublishedPostsScreen(navController = navController)
-            }
-
+        // İlan düzenleme ekranı
+        composable("editPost/{jobId}") { backStackEntry ->
+            val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
+            EditPostScreen(navController = navController, jobId = jobId)
         }
     }
+}

@@ -70,7 +70,7 @@ fun CreatePostScreen(
                     }
             } else {
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Kullanıcı bilgisi alınamadı!")
+                    snackbarHostState.showSnackbar("Kullanıcı girişi yapmanız lazım!")
                 }
             }
         } catch (e: Exception) {
