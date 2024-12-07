@@ -1,7 +1,6 @@
 package com.gen.stajyerim.ui.screens
 
 import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,10 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.wear.compose.material.MaterialTheme.colors
-import com.gen.stajyerim.R
+import com.gen.stajyerim.model.Applicant
+import com.gen.stajyerim.model.Job
+import com.gen.stajyerim.model.Reaction
+import com.gen.stajyerim.model.ReactionInfo
 import com.gen.stajyerim.ui.theme.PurpleGrey40
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -464,7 +464,6 @@ fun addReaction(job: Job, reaction: Reaction) {
 }
 
 
-// Firestore'a başvuru bilgisi eklemek
 fun addApplicant(job: Job) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     val currentUserName = FirebaseAuth.getInstance().currentUser?.displayName
@@ -501,29 +500,4 @@ fun addApplicant(job: Job) {
             }
         }
     }
-}
-
-
-data class Job(
-    val title: String? = null,
-    val timestamp: Long? = null,
-    val userId: String? = null,
-    val reaction: Reaction? = null,
-    val applicants: List<Applicant>? = null,
-    val reactions: List<ReactionInfo>? = null
-)
-
-data class Applicant(
-    val userId: String? = null,
-    val userName: String? = null,
-)
-
-data class ReactionInfo(
-    val userId: String? = null,
-    val reaction: String? = null // Like/Dislike
-)
-
-enum class Reaction {
-    Like,
-    Dislike
 }
