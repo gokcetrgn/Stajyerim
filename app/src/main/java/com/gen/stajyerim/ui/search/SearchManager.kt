@@ -13,7 +13,9 @@ class SearchManager(private val db: FirebaseFirestore) {
                 .endAt(query + "\uf8ff")
                 .get()
                 .addOnSuccessListener { snapshot ->
-                    val jobs = snapshot.documents.mapNotNull { it.toObject(Job::class.java) }
+                    val jobs = snapshot.documents
+                        .mapNotNull { it.toObject(Job::class.java) }
+                        .distinctBy { it.title }
                     onResult(jobs)
                 }
                 .addOnFailureListener { exception ->
@@ -24,7 +26,9 @@ class SearchManager(private val db: FirebaseFirestore) {
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener { snapshot ->
-                    val jobs = snapshot.documents.mapNotNull { it.toObject(Job::class.java) }
+                    val jobs = snapshot.documents
+                        .mapNotNull { it.toObject(Job::class.java) }
+                        .distinctBy { it.title }
                     onResult(jobs)
                 }
                 .addOnFailureListener { exception ->

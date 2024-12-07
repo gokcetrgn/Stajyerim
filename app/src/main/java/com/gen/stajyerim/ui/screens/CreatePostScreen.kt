@@ -30,7 +30,6 @@ fun CreatePostScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    // İlan ekleme işlemi
     fun createPost() {
         if (jobTitle.isEmpty() || jobDescription.isEmpty()) {
             coroutineScope.launch {
@@ -38,11 +37,23 @@ fun CreatePostScreen(
             }
             return
         }
+        if (jobTitle.length < 5) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Başlık en az 5 karakter olmalıdır.")
+            }
+            return
+        }
+
+        if (jobDescription.length < 20) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Detay en az 20 karakter olmalıdır.")
+            }
+            return
+        }
 
         isLoading = true
 
         try {
-            // Firebase'e ilan ekleme işlemi
             val currentUser = FirebaseAuth.getInstance().currentUser
             val userId = currentUser?.uid
             val db = FirebaseFirestore.getInstance()
@@ -122,7 +133,7 @@ fun CreatePostScreen(
             Button(
                 onClick = { createPost() },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xffba68c8), // Mor tonlarında arka plan rengi
+                    containerColor = Color(0xffba68c8),
                     contentColor = Color.White),
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading

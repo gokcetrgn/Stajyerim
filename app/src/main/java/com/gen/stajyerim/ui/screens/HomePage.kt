@@ -37,6 +37,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -47,6 +48,8 @@ fun HomePage(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+
     val coroutineScope = rememberCoroutineScope()
     val searchManager = remember { SearchManager(FirebaseFirestore.getInstance()) }
 
@@ -60,9 +63,7 @@ fun HomePage(
         onSearchTriggered = { query ->
             searchManager.searchJobs(
                 query = query,
-                onResult = { jobs ->
-                    jobList.value = jobs
-                },
+                onResult = { jobs -> jobList.value = jobs },
                 onError = { exception ->
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Hata: ${exception.message}")
@@ -152,9 +153,7 @@ fun HomePage(
                             searchQuery = query
                             searchManager.searchJobs(
                                 query = query,
-                                onResult = { jobs ->
-                                    jobList.value = jobs
-                                },
+                                onResult = { jobs -> jobList.value = jobs },
                                 onError = { exception ->
                                     coroutineScope.launch {
                                         snackbarHostState.showSnackbar("Hata: ${exception.message}")
@@ -162,7 +161,7 @@ fun HomePage(
                                 }
                             )
                         },
-                        label = { Text("Ara (İlan, Kişi, Şirket)") },
+                        label = { Text("İlan Ara)") },
                         leadingIcon = {
                             Icon(imageVector = Icons.Default.Search, contentDescription = "Ara")
                         },
@@ -182,9 +181,13 @@ fun HomePage(
                             JobItem(
                                 job = job,
                                 onApplyClick = {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("${job.title} ilanına başvuruldu!")
-                                        addApplicant(job)
+                                    if (currentUserId != null) {
+                                        db.collection("users").document(currentUserId).get().addOnSuccessListener { document ->
+                                            val appliedPosts = document.get("appliedPosts") as? List<String> ?: emptyList()
+                                            if (appliedPosts.contains(job.title)) {
+                                                Log.d("Başvuru", "Zaten bu ilana başvurdunuz.")
+                                            }
+                                        }
                                     }
                                 },
                                 onReactClick = { reaction ->
@@ -274,7 +277,7 @@ fun DrawerContent(navController: NavHostController) {
             onClick = {
                 FirebaseAuth.getInstance().signOut()
                 navController.navigate("login") {
-                    popUpTo(0)
+                    popUpTo(0) { inclusive = true }
                 }
             }
         )
@@ -307,18 +310,22 @@ fun DrawerItem(
             color = Color.Black
         )
     }
-}@Composable
+}
+@Composable
 fun JobItem(
     job: Job,
     onApplyClick: () -> Unit,
     onReactClick: (Reaction) -> Unit,
     onCommentClick: () -> Unit,
     onProfileClick: () -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    showApplyButton: Boolean = true
 ) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val db = FirebaseFirestore.getInstance()
 
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     var reactionState by remember { mutableStateOf<Reaction?>(null) }
     var applicantState by remember { mutableStateOf(false) }  // Başvuru durumu
     val jobTitle = job.title ?: ""
@@ -340,7 +347,7 @@ fun JobItem(
             applicants?.forEach { applicant ->
                 val userId = applicant["userId"] as? String
                 if (userId == currentUser?.uid) {
-                    applicantState = true  // Kullanıcı başvuru yapmış
+                    applicantState = true
                 }
             }
         }
@@ -363,27 +370,39 @@ fun JobItem(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = {
-                    if (currentUser == null) {
-                        showAlertDialog = true
-                    } else {
-                        if (applicantState) {
-                            showAlertDialog = true
-                        } else {
-                            addApplicant(job)
-                            applicantState = true
-                            onApplyClick()
-                        }
+            if (job.userId != currentUser?.uid) {
+                if (showApplyButton) {
+                    Button(
+                        onClick = {
+                            if (currentUser == null) {
+                                showAlertDialog = true
+                            } else {
+                                if (applicantState) {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Bu ilana zaten başvurdunuz!")
+                                    }
+                                } else {
+                                    addApplicant(job, snackbarHostState, coroutineScope)
+                                    applicantState = true
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (applicantState) Color.Gray else Color(0xffba68c8),
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !applicantState
+                    ) {
+                        Text(if (applicantState) "Zaten Başvurdunuz" else "Başvur")
                     }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xffba68c8),
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Başvur")
+                }
+            } else {
+                Text(
+                    text = "İlanınıza başvurulmasını bekleyin",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -440,7 +459,7 @@ fun JobItem(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    navController.navigate("login") // Giriş sayfasına yönlendir
+                    navController.navigate("login")
                     showAlertDialog = false
                 }) {
                     Text("Giriş Yap")
@@ -448,7 +467,7 @@ fun JobItem(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    showAlertDialog = false // AlertDialog'u kapat
+                    showAlertDialog = false
                 }) {
                     Text("Tamam")
                 }
@@ -480,23 +499,47 @@ fun addReaction(job: Job, reaction: Reaction) {
 }
 
 
-fun addApplicant(job: Job) {
+fun addApplicant(job: Job, snackbarHostState: SnackbarHostState, coroutineScope: CoroutineScope) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     val currentUserName = FirebaseAuth.getInstance().currentUser?.displayName
 
     if (currentUserId != null && currentUserName != null) {
+        if (job.userId == currentUserId) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Kendi ilanınıza başvuru yapamazsınız!")
+            }
+            return
+        }
+
         val applicant = Applicant(userId = currentUserId, userName = currentUserName)
         val postRef = FirebaseFirestore.getInstance().collection("posts").document(job.title ?: "")
 
         postRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
-                postRef.update("applicants", FieldValue.arrayUnion(applicant))
-                    .addOnSuccessListener {
-                        Log.d("Firestore", "Başvuru başarıyla eklendi!")
+                val applicants = document.get("applicants") as? List<Map<String, Any>> ?: emptyList()
+
+                val hasApplied = applicants.any { it["userId"] == currentUserId }
+                if (hasApplied) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Bu ilana zaten başvurdunuz!")
                     }
-                    .addOnFailureListener { e ->
-                        Log.e("Firestore", "Başvuru eklenemedi: ${e.localizedMessage}", e)
-                    }
+                } else {
+                    postRef.update("applicants", FieldValue.arrayUnion(applicant))
+                        .addOnSuccessListener {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Başvuru başarıyla eklendi!")
+                            }
+
+                            val userRef = FirebaseFirestore.getInstance().collection("users").document(currentUserId)
+                            userRef.update("appliedPosts", FieldValue.arrayUnion(job.title))
+                                .addOnFailureListener { e ->
+                                    Log.e("Firestore", "Başvuru kullanıcıya kaydedilemedi: ${e.localizedMessage}", e)
+                                }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("Firestore", "Başvuru eklenemedi: ${e.localizedMessage}", e)
+                        }
+                }
             } else {
                 postRef.set(
                     mapOf(
@@ -505,7 +548,9 @@ fun addApplicant(job: Job) {
                     ), SetOptions.merge()
                 )
                     .addOnSuccessListener {
-                        Log.d("Firestore", "Yeni belge oluşturuldu ve başvuru eklendi!")
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Yeni belge oluşturuldu ve başvuru eklendi!")
+                        }
                     }
                     .addOnFailureListener { e ->
                         Log.e("Firestore", "Belge oluşturulamadı: ${e.localizedMessage}", e)

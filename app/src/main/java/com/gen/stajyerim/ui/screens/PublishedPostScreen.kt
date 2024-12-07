@@ -19,6 +19,8 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import androidx.navigation.NavHostController
+import com.gen.stajyerim.model.JobPost
+import com.gen.stajyerim.ui.components.BackButton
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +50,7 @@ fun PublishedPostsScreen(
                     if (e != null) {
                         Log.e("FirestoreError", "Error getting documents: ", e)
                         coroutineScope.launch {
-                            //snackbarHostState.showSnackbar("İlanlar yüklenirken hata oluştu!")
+                            snackbarHostState.showSnackbar("İlanlar yüklenirken hata oluştu!")
                         }
                         return@addSnapshotListener
                     }
@@ -132,6 +134,7 @@ fun PublishedPostsScreen(
             }
         }
     }
+    BackButton(navController = navController)
 }
 
 
@@ -139,8 +142,8 @@ fun PublishedPostsScreen(
 fun PublishedJobItem(
     jobPost: JobPost,
     onProfileClick: (String) -> Unit,
-    onDeleteClick: (String) -> Unit, // İlanı silmek için
-    onEditClick: (String) -> Unit // İlanı düzenlemek için
+    onDeleteClick: (String) -> Unit,
+    onEditClick: (String) -> Unit
 ) {
     var showApplicantsDialog by remember { mutableStateOf(false) }
     var showReactionsDialog by remember { mutableStateOf(false) }
@@ -244,7 +247,6 @@ fun PublishedJobItem(
         )
     }
 
-    // Tepkiler Dialog
     if (showReactionsDialog) {
         AlertDialog(
             onDismissRequest = { showReactionsDialog = false },
@@ -276,21 +278,9 @@ fun PublishedJobItem(
 
 
 
-data class JobPost(
-    val id: String = "",
-    val title: String = "",
-    val publisherId: String = "",
-    val reactions: Map<String, JobReaction> = emptyMap(), // Tepkiler bir Map
-    val applicants: Map<String, JobApplicant> = emptyMap(), // Başvuranlar bir Map
-)
 
-data class JobReaction(
-    val reaction: String = "",
-    val userId: String = "" // Tepki veren kullanıcı ID'si
-)
 
-data class JobApplicant(
-    val userId: String = "",
-    val userName: String = "" // Başvuran kullanıcı adı
-)
+
+
+
 

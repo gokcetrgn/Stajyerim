@@ -23,6 +23,7 @@ import com.gen.stajyerim.data.repository.AuthRepository
 import com.gen.stajyerim.ui.backgrounds.SignUpBackground
 import com.gen.stajyerim.ui.components.BackButton
 import com.gen.stajyerim.ui.components.CustomTextField
+import java.util.UUID
 
 
 @Composable

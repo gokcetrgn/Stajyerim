@@ -1,14 +1,9 @@
 package com.gen.stajyerim.data.repository
 
-import android.app.Activity
-import androidx.fragment.app.FragmentActivity
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
 
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import java.util.concurrent.TimeUnit
 
 class AuthRepository(val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()) {
 
@@ -20,7 +15,12 @@ class AuthRepository(val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
                 if (task.isSuccessful) {
                     val uid = firebaseAuth.currentUser?.uid ?: return@addOnCompleteListener
                     val userRef = firestore.collection("users").document(uid)
-                    userRef.set(userData)
+
+
+                    val updatedUserData = userData.toMutableMap()
+                    updatedUserData["userId"] = uid
+
+                    userRef.set(updatedUserData)
                         .addOnCompleteListener { userTask ->
                             if (userTask.isSuccessful) {
                                 onComplete(Result.success(Unit))

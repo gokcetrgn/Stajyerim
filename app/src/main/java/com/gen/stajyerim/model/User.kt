@@ -1,5 +1,7 @@
 package com.gen.stajyerim.model
 
+import java.util.UUID
+
 data class User(
     val email: String,
     val name: String,
@@ -7,7 +9,7 @@ data class User(
     val companyName: String? = null,
     val companyNumber: String? = null,
     val profession: String? = null,
-    val userType: String
+    val userType: String,
 )
 
 fun User.toMap(): Map<String, Any> {
@@ -18,6 +20,6 @@ fun User.toMap(): Map<String, Any> {
         "companyName" to (companyName ?: ""),
         "companyNumber" to (companyNumber ?: ""),
         "profession" to (profession ?: ""),
-        "userType" to userType
+        "userType" to userType,
     )
 }
