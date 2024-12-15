@@ -99,10 +99,16 @@ fun AppNavigation(
             PublishedPostsScreen(navController = navController)
         }
 
-        // İlan düzenleme ekranı
-        composable("editPost/{jobId}") { backStackEntry ->
-            val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
-            EditPostScreen(navController = navController, jobId = jobId)
+        // İlan detay ekranı
+        composable("PostDetailPage/{postId}") { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+            PostDetailPage(navController = navController, title = postId)
+        }
+
+        //ilan düzenleme ekranı
+        composable("editPost/{postId}") { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+            EditPostScreen(navController = navController, jobId =postId)
         }
     }
 }

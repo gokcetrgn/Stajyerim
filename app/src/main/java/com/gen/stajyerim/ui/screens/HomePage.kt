@@ -44,7 +44,7 @@ import kotlinx.coroutines.tasks.await
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(
-    navController: NavHostController, userType: String = "unknown",
+    navController: NavHostController, userType: String
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
@@ -189,11 +189,22 @@ fun HomePage(
                                             }
                                         }
                                     }
+                                    if (userType == "unknown") {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Başvuru yapabilmek için giriş yapmalısınız!")
+                                        }
+                                    }
                                 },
                                 onReactClick = { reaction ->
+                                    if (userType == "unknown") {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Tepki vermek için giriş yapmalısınız!")
+                                        }
+                                    }
                                     coroutineScope.launch {
                                         addReaction(job, reaction)
                                     }
+
                                 },
                                 onCommentClick = {
                                     coroutineScope.launch {
@@ -282,7 +293,7 @@ fun DrawerContent(navController: NavHostController) {
             icon = Icons.Default.ExitToApp,
             onClick = {
                 FirebaseAuth.getInstance().signOut()
-                navController.navigate("login") {
+                navController.navigate("landing") {
                     popUpTo(0) { inclusive = true }
                 }
             }
@@ -317,6 +328,7 @@ fun DrawerItem(
         )
     }
 }
+
 @Composable
 fun JobItem(
     job: Job,
@@ -337,7 +349,7 @@ fun JobItem(
     val jobTitle = job.title ?: ""
 
     LaunchedEffect(jobTitle) {
-        val postRef = db.collection("posts").document(jobTitle)
+        val postRef = db.collection("postInfo").document(jobTitle)
         val snapshot = postRef.get().await()
 
         if (snapshot.exists()) {
@@ -364,7 +376,8 @@ fun JobItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { navController.navigate("PostDetailPage/$jobTitle")},
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.elevatedCardElevation(4.dp)
     ) {
@@ -423,10 +436,9 @@ fun JobItem(
                     onClick = {
                         reactionState = if (reactionState == Reaction.Like) null else Reaction.Like
                         reactionState?.let {
-                            addReaction(job, it)
                             onReactClick(it)
+                            }
                         }
-                    }
                 ) {
                     Icon(
                         imageVector = Icons.Default.ThumbUp,
@@ -438,8 +450,8 @@ fun JobItem(
                 IconButton(
                     onClick = {
                         reactionState = if (reactionState == Reaction.Dislike) null else Reaction.Dislike
+
                         reactionState?.let {
-                            addReaction(job, it)
                             onReactClick(it)
                         }
                     }
@@ -483,59 +495,109 @@ fun JobItem(
 }
 
 fun addReaction(job: Job, reaction: Reaction) {
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val currentUserName = FirebaseAuth.getInstance().currentUser?.displayName ?: return
 
-    if (currentUserId != null) {
-        val reactionInfo = ReactionInfo(userId = currentUserId, reaction = reaction.name)
-        val postRef = FirebaseFirestore.getInstance().collection("posts").document(job.title ?: "")
+    val postRef = FirebaseFirestore.getInstance()
+        .collection("postInfo")
+        .document(job.title ?: return)
 
-        postRef.set(
-            mapOf(
-                "title" to job.title,
-                "reactions" to listOf(reactionInfo)
-            ), SetOptions.merge()
-        )
-            .addOnSuccessListener {
-                Log.d("Firestore", "Yeni belge oluşturuldu ve reaksiyon eklendi!")
+    val userReaction = mapOf(
+        "userId" to currentUserId,
+        "userName" to currentUserName,
+        "reaction" to reaction.name
+    )
+
+    // Belgeyi kontrol et
+    postRef.get()
+        .addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                // Belge varsa güncelle
+                val reactions = snapshot.get("reactions") as? MutableList<Map<String, Any>> ?: mutableListOf()
+
+                // Kullanıcının önceki tepkisini güncelle
+                val userIndex = reactions.indexOfFirst { it["userId"] == currentUserId }
+                if (userIndex != -1) {
+                    reactions[userIndex] = userReaction
+                } else {
+                    reactions.add(userReaction)
+                }
+
+                // Güncel veriyi kaydet
+                val updates = mapOf(
+                    "reactions" to reactions,
+                    "reactionCount" to reactions.size
+                )
+                postRef.set(updates, SetOptions.merge())
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "Tepki başarıyla eklendi!")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Tepki eklenemedi: ${e.localizedMessage}", e)
+                    }
+            } else {
+                // Belge yoksa oluştur
+                val newDocument = mapOf(
+                    "title" to job.title,
+                    "reactions" to listOf(userReaction),
+                    "reactionCount" to 1
+                )
+                postRef.set(newDocument)
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "Yeni belge oluşturuldu ve tepki eklendi!")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "Belge oluşturulamadı: ${e.localizedMessage}", e)
+                    }
             }
-            .addOnFailureListener { e ->
-                Log.e("Firestore", "Belge oluşturulamadı: ${e.localizedMessage}", e)
-            }
-    }
+        }
+        .addOnFailureListener { e ->
+            Log.e("Firestore", "Belge kontrolü başarısız: ${e.localizedMessage}", e)
+        }
 }
 
 
+
+
 fun addApplicant(job: Job, snackbarHostState: SnackbarHostState, coroutineScope: CoroutineScope) {
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-    val currentUserName = FirebaseAuth.getInstance().currentUser?.displayName
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val currentUserName = FirebaseAuth.getInstance().currentUser?.displayName ?: return
 
-    if (currentUserId != null && currentUserName != null) {
-        if (job.userId == currentUserId) {
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar("Kendi ilanınıza başvuru yapamazsınız!")
-            }
-            return
+    // Kullanıcının kendi ilanına başvuru yapmasını engelle
+    if (job.userId == currentUserId) {
+        coroutineScope.launch {
+            snackbarHostState.showSnackbar("Kendi ilanınıza başvuru yapamazsınız!")
         }
+        return
+    }
 
-        val applicant = Applicant(userId = currentUserId, userName = currentUserName)
-        val postRef = FirebaseFirestore.getInstance().collection("posts").document(job.title ?: "")
+    val applicant = Applicant(userId = currentUserId, userName = currentUserName)
+    val postRef = FirebaseFirestore.getInstance().collection("postInfo").document(job.title ?: "")
 
-        postRef.get().addOnSuccessListener { document ->
+    postRef.get()
+        .addOnSuccessListener { document ->
             if (document.exists()) {
+                // Mevcut başvuruları al
                 val applicants = document.get("applicants") as? List<Map<String, Any>> ?: emptyList()
 
+                // Kullanıcının daha önce başvuru yapıp yapmadığını kontrol et
                 val hasApplied = applicants.any { it["userId"] == currentUserId }
                 if (hasApplied) {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Bu ilana zaten başvurdunuz!")
                     }
                 } else {
-                    postRef.update("applicants", FieldValue.arrayUnion(applicant))
+                    // Başvuru ekle ve başvuran sayısını artır
+                    postRef.update(
+                        "applicants", FieldValue.arrayUnion(applicant),
+                        "applicantCount", FieldValue.increment(1)
+                    )
                         .addOnSuccessListener {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("Başvuru başarıyla eklendi!")
                             }
 
+                            // Kullanıcının başvuru kaydını güncelle
                             val userRef = FirebaseFirestore.getInstance().collection("users").document(currentUserId)
                             userRef.update("appliedPosts", FieldValue.arrayUnion(job.title))
                                 .addOnFailureListener { e ->
@@ -547,12 +609,13 @@ fun addApplicant(job: Job, snackbarHostState: SnackbarHostState, coroutineScope:
                         }
                 }
             } else {
-                postRef.set(
-                    mapOf(
-                        "title" to job.title,
-                        "applicants" to listOf(applicant)
-                    ), SetOptions.merge()
+                // Belge yoksa oluştur ve başvuru ekle
+                val newPost = mapOf(
+                    "title" to job.title,
+                    "applicants" to listOf(applicant),
+                    "applicantCount" to 1
                 )
+                postRef.set(newPost, SetOptions.merge())
                     .addOnSuccessListener {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Yeni belge oluşturuldu ve başvuru eklendi!")
@@ -563,5 +626,8 @@ fun addApplicant(job: Job, snackbarHostState: SnackbarHostState, coroutineScope:
                     }
             }
         }
-    }
+        .addOnFailureListener { e ->
+            Log.e("Firestore", "Belge alınamadı: ${e.localizedMessage}", e)
+        }
 }
+
