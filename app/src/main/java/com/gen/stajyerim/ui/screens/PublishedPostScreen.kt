@@ -19,33 +19,42 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import androidx.navigation.NavHostController
+import com.gen.stajyerim.model.JobApplicant
 import com.gen.stajyerim.model.JobPost
+import com.gen.stajyerim.model.JobReaction
+import com.gen.stajyerim.model.PostInfo
 import com.gen.stajyerim.ui.components.BackButton
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublishedPostsScreen(
-    navController: NavHostController,
-    userType: String = "unknown",
+    navController: NavHostController
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    // Yayımlanan iş ilanları
     val publishedJobs = remember { mutableStateOf(listOf<JobPost>()) }
+
+    // Başvuranlar ve Tepkiler
+    val applicants = remember { mutableStateOf<Map<String, JobApplicant>>(emptyMap()) }
+    val reactions = remember { mutableStateOf<Map<String, JobReaction>>(emptyMap()) }
 
     val db = Firebase.firestore
     val currentUser = FirebaseAuth.getInstance().currentUser
 
+    // İlanları ve başvuranları almak
     LaunchedEffect(Unit) {
         if (currentUser == null) {
             coroutineScope.launch {
                 snackbarHostState.showSnackbar("Lütfen giriş yapın.")
             }
         } else {
+            // "posts" koleksiyonundan verileri alıyoruz
             db.collection("posts")
-                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .whereEqualTo("userId", currentUser.uid)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         Log.e("FirestoreError", "Error getting documents: ", e)
@@ -55,21 +64,58 @@ fun PublishedPostsScreen(
                         return@addSnapshotListener
                     }
 
-                    if (snapshot != null && !snapshot.isEmpty) {
-                        val jobs = snapshot.documents.mapNotNull { doc ->
-                            try {
-                                val jobPost = doc.toObject(JobPost::class.java)?.copy(id = doc.id)
-                                jobPost
-                            } catch (e: Exception) {
-                                Log.e("MappingError", "Error mapping document: ${doc.id}", e)
-                                null
+                    if (snapshot != null) {
+                        if (!snapshot.isEmpty) {
+                            val jobs = snapshot.documents.mapNotNull { doc ->
+                                try {
+                                    val jobPost =
+                                        doc.toObject(JobPost::class.java)?.copy(id = doc.id)
+                                    jobPost
+                                } catch (e: Exception) {
+                                    Log.e("MappingError", "Error mapping document: ${doc.id}", e)
+                                    null
+                                }
                             }
+                            // Yayımlanan ilanları kaydediyoruz
+                            publishedJobs.value = jobs
+                            Log.d("FirestoreData", "Published jobs: ${jobs.size} jobs found")
+                        } else {
+                            publishedJobs.value = emptyList()
+                            Log.d("FirestoreData", "No jobs found")
                         }
-                        publishedJobs.value = jobs
-                    } else {
-                        publishedJobs.value = emptyList()
                     }
                 }
+
+            // "postInfo" koleksiyonundan başvuranları ve tepki verenleri alıyoruz
+            if (publishedJobs.value.isNotEmpty()) {
+                db.collection("postInfo")
+                    .whereIn("title", publishedJobs.value.map { it.title }) // İlanlara göre filtreleme
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            Log.e("FirestoreError", "Error getting documents: ", e)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Başvuranlar ve tepkiler yüklenirken hata oluştu!")
+                            }
+                            return@addSnapshotListener
+                        }
+
+                        if (snapshot != null) {
+                            if (!snapshot.isEmpty) {
+                                // Başvuranlar ve Tepkiler verisini işliyoruz
+                                snapshot.documents.forEach { doc ->
+                                    Log.d("FirestoreData", "Document data: ${doc.data}")
+                                    val postInfo = doc.toObject(PostInfo::class.java)
+                                    postInfo?.let { info ->
+                                        applicants.value = info.applicants
+                                        reactions.value = info.reactions
+                                        // Başvuranları ve Tepkileri saklıyoruz
+                                        Log.d("FirestoreData", "PostInfo: Applicants count = ${info.applicants.size}, Reactions count = ${info.reactions.size}")
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
         }
     }
 
@@ -112,22 +158,47 @@ fun PublishedPostsScreen(
                     items(publishedJobs.value) { jobPost ->
                         PublishedJobItem(
                             jobPost = jobPost,
-                            onProfileClick = { userId -> navController.navigate("profile/$userId") },
-                            onDeleteClick = { jobId ->
-                                db.collection("posts").document(jobId).delete()
-                                    .addOnSuccessListener {
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("İlan başarıyla silindi!")
-                                        }
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Log.e("DeleteError", "Silme işlemi başarısız: ", e)
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("İlan silinirken bir hata oluştu.")
-                                        }
-                                    }
+                            applicants = applicants.value, // Başvuranlar verisini gönderiyoruz
+                            reactions = reactions.value,  // Tepkiler verisini gönderiyoruz
+                            onProfileClick = { userId ->
+                                // Profil ekranına yönlendirme
+                                navController.navigate("profile/$userId")
                             },
-                            onEditClick = { jobId -> navController.navigate("editPost/$jobId") }
+
+                            onDeleteClick = { jobId ->
+                                // Silme işlemi
+                                coroutineScope.launch {
+                                    try {
+                                        // "posts" koleksiyonundan ilanı sil
+                                        db.collection("posts").document(jobId).delete()
+
+                                        // "postInfo" koleksiyonundan ilişkili post bilgilerini sil
+                                        db.collection("postInfo")
+                                            .whereEqualTo("title", jobPost.title) // İlanın başlığına göre filtreleme
+                                            .get()
+                                            .addOnSuccessListener { querySnapshot ->
+                                                querySnapshot.documents.forEach { doc ->
+                                                    // İlgili postInfo dokümanını sil
+                                                    db.collection("postInfo").document(doc.id).delete()
+                                                }
+                                                Log.d("Firestore", "Related postInfo documents deleted")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("Firestore", "Error deleting related postInfo documents", e)
+                                            }
+
+                                        snackbarHostState.showSnackbar("İlan başarıyla silindi.")
+                                    } catch (e: Exception) {
+                                        Log.e("DeleteError", "Error deleting post: ", e)
+                                        snackbarHostState.showSnackbar("İlan silinirken bir hata oluştu.")
+                                    }
+                                }
+                            },
+
+                            onEditClick = { jobId ->
+                                // Düzenleme ekranına yönlendirme
+                                navController.navigate("editPost/$jobId")
+                            }
                         )
                     }
                 }
@@ -141,6 +212,8 @@ fun PublishedPostsScreen(
 @Composable
 fun PublishedJobItem(
     jobPost: JobPost,
+    applicants: Map<String, JobApplicant>,
+    reactions: Map<String, JobReaction>,
     onProfileClick: (String) -> Unit,
     onDeleteClick: (String) -> Unit,
     onEditClick: (String) -> Unit
@@ -203,7 +276,7 @@ fun PublishedJobItem(
             // Başvuranlar Butonu
             TextButton(onClick = { showApplicantsDialog = true }) {
                 Text(
-                    text = "Başvuranlar: ${jobPost.applicants.size}",
+                    text = "Başvuranlar: ${applicants.size}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -211,7 +284,7 @@ fun PublishedJobItem(
             // Tepkiler Butonu
             TextButton(onClick = { showReactionsDialog = true }) {
                 Text(
-                    text = "Tepkiler: ${jobPost.reactions.size}",
+                    text = "Tepkiler: ${reactions.size}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -225,15 +298,15 @@ fun PublishedJobItem(
             title = { Text("Başvuranlar") },
             text = {
                 Column {
-                    if (jobPost.applicants.isEmpty()) {
+                    if (applicants.isEmpty()) {
                         Text("Henüz başvuru yapılmamış.")
                     } else {
-                        jobPost.applicants.forEach { (key, applicant) ->
+                        applicants.values.forEach { applicant ->
                             TextButton(onClick = {
                                 onProfileClick(applicant.userId)
                                 showApplicantsDialog = false
                             }) {
-                                Text("- Kullanıcı ID: ${applicant.userId}, Kullanıcı Adı: ${applicant.userName}")
+                                Text("- Kullanıcı Adı: ${applicant.userName}")
                             }
                         }
                     }
@@ -247,21 +320,22 @@ fun PublishedJobItem(
         )
     }
 
+    // Tepkiler Dialog
     if (showReactionsDialog) {
         AlertDialog(
             onDismissRequest = { showReactionsDialog = false },
             title = { Text("Tepki Verenler") },
             text = {
                 Column {
-                    if (jobPost.reactions.isEmpty()) {
+                    if (reactions.isEmpty()) {
                         Text("Henüz tepki verilmemiş.")
                     } else {
-                        jobPost.reactions.forEach { (key, reactions) ->
+                        reactions.values.forEach { reaction ->
                             TextButton(onClick = {
-                                onProfileClick(reactions.userId)
+                                onProfileClick(reaction.userId)
                                 showReactionsDialog = false
                             }) {
-                                Text("- Kullanıcı ID: ${reactions.userId}, Tepki: ${reactions.reaction}")
+                                Text("- Kullanıcı Adı: ${reaction.userName}, Tepki: ${reaction.reaction}")
                             }
                         }
                     }
@@ -275,12 +349,3 @@ fun PublishedJobItem(
         )
     }
 }
-
-
-
-
-
-
-
-
-

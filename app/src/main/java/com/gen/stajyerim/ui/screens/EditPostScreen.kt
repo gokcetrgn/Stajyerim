@@ -24,7 +24,7 @@ fun EditPostScreen(navController: NavHostController, jobId: String) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     var jobTitle by remember { mutableStateOf("") }
-    var jobContent by remember { mutableStateOf("") }
+    var jobDescription by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
 
     // İlan bilgilerini getir
@@ -33,7 +33,7 @@ fun EditPostScreen(navController: NavHostController, jobId: String) {
             .addOnSuccessListener { document ->
                 if (document != null) {
                     jobTitle = document.getString("title") ?: ""
-                    jobContent = document.getString("description") ?: ""
+                    jobDescription = document.getString("description") ?: ""
                 }
                 isLoading = false
             }
@@ -88,8 +88,8 @@ fun EditPostScreen(navController: NavHostController, jobId: String) {
 
                 // İlan içeriği giriş alanı
                 TextField(
-                    value = jobContent,
-                    onValueChange = { jobContent = it },
+                    value = jobDescription,
+                    onValueChange = { jobDescription = it },
                     label = { Text("İlan İçeriği") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 5
@@ -99,7 +99,7 @@ fun EditPostScreen(navController: NavHostController, jobId: String) {
                 Button(
                     onClick = {
                         val updateData = mapOf("title" to jobTitle,
-                            "content" to jobContent,
+                            "description" to jobDescription,
                             )
                         db.collection("posts").document(jobId)
                             .update(updateData)
