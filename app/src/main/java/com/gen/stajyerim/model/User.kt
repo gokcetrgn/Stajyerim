@@ -1,15 +1,15 @@
 package com.gen.stajyerim.model
 
-import java.util.UUID
 
 data class User(
-    val email: String,
-    val name: String,
+    val email: String = "",
+    val name: String = "",
     val surname: String? = null,
     val companyName: String? = null,
     val companyNumber: String? = null,
     val profession: String? = null,
-    val userType: String,
+    val userType: String = "student",
+    val summary: String? = null // Yeni summary alanı, null olabilir
 )
 
 fun User.toMap(): Map<String, Any> {

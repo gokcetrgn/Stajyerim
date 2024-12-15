@@ -1,4 +1,5 @@
 package com.gen.stajyerim.ui.screens
 
-class PostInfoPage {
-}
+import androidx.navigation.NavHostController
+
+fun PostInfoScreen(navController: NavHostController) {}

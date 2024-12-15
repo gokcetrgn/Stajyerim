@@ -94,4 +94,9 @@ dependencies {
 
     implementation("androidx.compose.foundation:foundation-layout:1.5.0")
 
+    // for images
+    implementation("androidx.activity:activity-compose:1.7.2")
+    implementation("io.coil-kt:coil-compose:2.2.2")
+
+
 }

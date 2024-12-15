@@ -3,7 +3,9 @@ package com.gen.stajyerim.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gen.stajyerim.data.repository.AuthRepository
+import com.gen.stajyerim.model.User
 import com.gen.stajyerim.model.toMap
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -57,6 +59,33 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                 onComplete(result.getOrNull(), null)
             } else {
                 onComplete(null, result.exceptionOrNull()?.message)
+            }
+        }
+    }
+    fun fetchUserProfile(userId: String, callback: (User?, String?) -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("users").document(userId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val user = document.toObject(User::class.java)
+                    callback(user, null)
+                } else {
+                    callback(null, "Kullanıcı bulunamadı.")
+                }
+            }
+            .addOnFailureListener { exception ->
+                callback(null, exception.message)
+            }
+    }
+
+    fun updateUserProfile(user: com.gen.stajyerim.model.User, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val result = authRepository.updateUserProfile(user.toMap())
+            if (result.isSuccess) {
+                onComplete(true, null)
+            } else {
+                onComplete(false, result.exceptionOrNull()?.message)
             }
         }
     }

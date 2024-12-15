@@ -21,6 +21,7 @@ import com.google.firebase.ktx.Firebase
 import androidx.navigation.NavHostController
 import com.gen.stajyerim.model.JobPost
 import com.gen.stajyerim.ui.components.BackButton
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -148,6 +149,29 @@ fun PublishedJobItem(
     var showApplicantsDialog by remember { mutableStateOf(false) }
     var showReactionsDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    val db = Firebase.firestore
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    // Beğeni ekleme
+    fun addReaction(jobId: String, reaction: String) {
+        if (currentUser != null) {
+            val reactionData = mapOf(
+                "userId" to currentUser.uid,
+                "reaction" to reaction
+            )
+            db.collection("posts")
+                .document(jobId)
+                .collection("reactions")
+                .add(reactionData)
+                .addOnSuccessListener {
+                    db.collection("posts").document(jobId)
+                        .update("reactionsCount", FieldValue.increment(1))
+                }
+                .addOnFailureListener { e ->
+                    Log.e("AddReactionError", "Error adding reaction: ", e)
+                }
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -161,14 +185,12 @@ fun PublishedJobItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // İlan Başlığı
                 Text(
                     text = jobPost.title,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
 
-                // Üç nokta menüsü
                 Box {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
@@ -215,6 +237,7 @@ fun PublishedJobItem(
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
+
         }
     }
 
@@ -233,7 +256,7 @@ fun PublishedJobItem(
                                 onProfileClick(applicant.userId)
                                 showApplicantsDialog = false
                             }) {
-                                Text("- Kullanıcı ID: ${applicant.userId}, Kullanıcı Adı: ${applicant.userName}")
+                                Text("- Kullanıcı ID: ${applicant.userId}")
                             }
                         }
                     }
@@ -261,7 +284,7 @@ fun PublishedJobItem(
                                 onProfileClick(reactions.userId)
                                 showReactionsDialog = false
                             }) {
-                                Text("- Kullanıcı ID: ${reactions.userId}, Tepki: ${reactions.reaction}")
+                                Text("- Kullanıcı ID: ${reactions.userId},  ${reactions.reaction}")
                             }
                         }
                     }
@@ -275,7 +298,6 @@ fun PublishedJobItem(
         )
     }
 }
-
 
 
 

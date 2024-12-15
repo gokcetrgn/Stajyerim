@@ -2,8 +2,10 @@ package com.gen.stajyerim.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.gen.stajyerim.data.repository.AuthRepository
 import com.gen.stajyerim.ui.screens.*
 import com.gen.stajyerim.viewmodel.AuthViewModel
@@ -74,7 +76,10 @@ fun AppNavigation(
         }
 
         // Profil ekranı
-        composable("profile?userId={userId}") { backStackEntry ->
+        composable(
+            route = "profile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             ProfileScreen(navController = navController, authViewModel = authViewModel, userId = userId)
         }

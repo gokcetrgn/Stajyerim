@@ -232,6 +232,7 @@ fun HomePage(
 
 @Composable
 fun DrawerContent(navController: NavHostController) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -251,7 +252,12 @@ fun DrawerContent(navController: NavHostController) {
             title = "Profil",
             icon = Icons.Default.Person,
             onClick = {
-                navController.navigate("profile")
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                if (!userId.isNullOrEmpty()) {
+                    navController.navigate("profile/$userId")
+                } else {
+                    Log.e("Navigation", "userId is null or empty!")
+                }
             }
         )
 

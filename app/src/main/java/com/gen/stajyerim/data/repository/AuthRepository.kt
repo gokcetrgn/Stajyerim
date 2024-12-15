@@ -48,6 +48,29 @@ class AuthRepository(val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
             }
     }
 
+    suspend fun getUserProfile(email: String): Result<com.gen.stajyerim.model.User> {
+        return try {
+            val document = firestore.collection("users").document(email).get().await()
+            if (document.exists()) {
+                val user = document.toObject(com.gen.stajyerim.model.User::class.java)
+                Result.success(user!!)
+            } else {
+                Result.failure(Exception("Kullanıcı bulunamadı"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateUserProfile(userMap: Map<String, Any>): Result<Unit> {
+        return try {
+            firestore.collection("users").document(userMap["email"] as String).set(userMap).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun logout() {
         firebaseAuth.signOut()
     }
