@@ -40,16 +40,13 @@ fun AppliedPostsScreen(navController: NavHostController) {
     val db = FirebaseFirestore.getInstance()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 
-    // Başvuruları alıyoruz
     LaunchedEffect(Unit) {
         currentUserId?.let { userId ->
-            // "postInfo" koleksiyonundaki başvuru yapılan ilanları almak için "applicants" dizisinde userId'yi arıyoruz
             db.collection("postInfo")
                 .get()
                 .addOnSuccessListener { snapshot ->
                     val jobs = snapshot.documents.mapNotNull { doc ->
                         val postInfo = doc.toObject(PostInfo::class.java)
-                        // Başvurulan ilanları, applicants dizisinde userId bulunan ilanlar
                         postInfo?.takeIf { post ->
                             post.applicants.values.any { it.userId == userId }
                         }?.let { jobPost ->
@@ -81,7 +78,7 @@ fun AppliedPostsScreen(navController: NavHostController) {
 @Composable
 fun JobItem(
     jobPost: Job,
-    onDeleteClick: (String) -> Unit,  // Başvuru iptal etmek için fonksiyon
+    onDeleteClick: (String) -> Unit,
     showApplyButton: Boolean
 ) {
     Card(
@@ -106,20 +103,18 @@ fun JobItem(
                 }
             }
 
-            // Başvuru iptal butonu
             if (!showApplyButton) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Başvuru iptal butonunu göster
                     Text(
-                        text = "Başvuruyu İptal Et",
+                        text = "Başvuruyu Geri Çek",
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .padding(top = 8.dp)
                             .clickable {
-                                jobPost.title?.let { onDeleteClick(it) } // Başvuru iptal işlemi
+                                jobPost.title?.let { onDeleteClick(it) }
                             }
                     )
                 }
@@ -131,24 +126,20 @@ fun JobItem(
 fun cancelApplication(jobTitle: String) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
     currentUserId?.let { userId ->
-        // postInfo koleksiyonundan ilgili jobTitle ve userId ile veriyi sorguluyoruz
         FirebaseFirestore.getInstance().collection("postInfo")
-            .whereEqualTo("title", jobTitle) // Job title'a göre arama yapıyoruz
+            .whereEqualTo("title", jobTitle)
             .get()
             .addOnSuccessListener { snapshot ->
                 snapshot.documents.forEach { doc ->
                     val postInfo = doc.toObject(PostInfo::class.java)
                     postInfo?.let {
-                        // Eğer başvuru varsa, kullanıcının başvurusu iptal edilecek
                         val updatedApplicants = it.applicants.toMutableMap()
-                        updatedApplicants.remove(userId) // Kullanıcının başvurusunu çıkar
+                        updatedApplicants.remove(userId)
 
-                        // Başvuranlar listesini güncelliyoruz
                         FirebaseFirestore.getInstance().collection("postInfo")
                             .document(doc.id)
                             .update("applicants", updatedApplicants)
                             .addOnSuccessListener {
-                                // Başvuru başarıyla iptal edildi
                             }
                             .addOnFailureListener { exception ->
                                 exception.printStackTrace()

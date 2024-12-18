@@ -98,5 +98,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("io.coil-kt:coil-compose:2.2.2")
 
+    // bir hata için ekstra
+    implementation("androidx.fragment:fragment:1.3.4")
+
 
 }
