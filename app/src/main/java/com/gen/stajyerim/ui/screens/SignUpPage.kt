@@ -51,13 +51,16 @@ fun SignUpScreen(
         ) {
             Text("Kayıt Ol", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(30.dp))
-            CustomTextField(value = name.value, onValueChange = { name.value = it }, label = "Ad")
-            CustomTextField(value = surname.value, onValueChange = { surname.value = it }, label = "Soyad")
+
+            if(userType == "student"){
+                CustomTextField(value = name.value, onValueChange = { name.value = it }, label = "Ad")
+                CustomTextField(value = surname.value, onValueChange = { surname.value = it }, label = "Soyad")
+            }
 
             if (userType == "company") {
-                CustomTextField(value = profession.value, onValueChange = { profession.value = it }, label = "Meslek")
-                CustomTextField(value = companyName.value, onValueChange = { companyName.value = it }, label = "Şirket Adı")
                 CustomTextField(value = companyNumber.value, onValueChange = { companyNumber.value = it }, label = "Şirket No")
+                CustomTextField(value = companyName.value, onValueChange = { companyName.value = it }, label = "Şirket Adı")
+                CustomTextField(value = profession.value, onValueChange = { profession.value = it }, label = "Sektör")
             }
 
             CustomTextField(value = email.value, onValueChange = { email.value = it }, label = "Email")

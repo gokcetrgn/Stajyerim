@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.compose.foundation.layout.Column
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -177,53 +178,83 @@ fun ProfileScreen(
                     }
                 }
                 else if (user.userType == "company") {
-                    OutlinedTextField(
-                        value = companyName,
-                        onValueChange = { companyName = it },
-                        label = { Text("Şirket Adı") },
-                        enabled = isEditing
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("E-posta") },
-                        enabled = false
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = companyName,
+                            onValueChange = { companyName = it },
+                            label = { Text("Şirket Adı") },
+                            enabled = isEditing
+                        )
 
-                    ProfessionTextField(profession = profession, isEditing = isEditing) { profession = it }
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text("E-posta") },
+                            enabled = false
+                        )
 
-                    Spacer(modifier = Modifier.height(6.dp))
-                    if (isEditing) {
-                        Button(
-                            modifier = Modifier.width(200.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFBF89D4)
-                            ),
-                            onClick = {
-                                // "Kaydet" butonuna basıldığında düzenlemeyi kaydediyoruz
-                                isEditing = false
-                                authViewModel.updateUserProfile(
-                                    user.copy(
-                                        name = name,
-                                        surname = surname,
-                                        companyName = companyName,
-                                        profession = profession,
-                                        summary = summary
-                                    )
-                                ) { success, error ->
-                                    if (success) {
-                                        Log.d("ProfileScreen", "Profile updated successfully")
-                                    } else {
-                                        error?.let { Log.e("ProfileScreen", "Error updating profile: $it") }
+                        OutlinedTextField(
+                            value = profession,
+                            onValueChange = { profession = it },
+                            label = { Text("Sektör") },
+                            enabled = isEditing
+                        )
+
+                        OutlinedTextField(
+                            value = summary,
+                            onValueChange = { summary = it },
+                            label = { Text("Şirket Özeti") },
+                            enabled = isEditing,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp),
+                            maxLines = 5,
+                            singleLine = false
+                        )
+
+                        // Düzenleme ve Kaydet butonları
+                        if (isEditing) {
+                            Button(
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBF89D4)),
+                                onClick = {
+                                    isEditing = false
+                                    authViewModel.updateUserProfile(
+                                        user.copy(
+                                            name = name,
+                                            surname = surname,
+                                            companyName = companyName,
+                                            profession = profession,
+                                            summary = summary
+                                        )
+                                    ) { success, error ->
+                                        if (success) {
+                                            Log.d("ProfileScreen", "Profile updated successfully")
+                                        } else {
+                                            error?.let { Log.e("ProfileScreen", "Error updating profile: $it") }
+                                        }
                                     }
                                 }
+                            ) {
+                                Text("Kaydet")
                             }
-                        ) {
-                            Text("Kaydet")
+                        } else {
+                            Button(
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                                onClick = {
+                                    isEditing = true // Düzenleme moduna geç
+                                }
+                            ) {
+                                Text("Düzenle")
+                            }
                         }
-                    } else {
+                    }
+                } else {
 
                         Button(
                             onClick = { isEditing = !isEditing },
@@ -238,7 +269,6 @@ fun ProfileScreen(
                 }
             }
         }
-    }
     BackButton(navController = navController)
 }
 
@@ -469,7 +499,7 @@ fun uploadFileSection(isEditing: Boolean,
     }
 }
 @Composable
-fun ProfessionTextField(profession: String, isEditing: Boolean, onProfessionChange: (String) -> Unit) {
+fun SummaryTextForCompany(summary: String, isEditing: Boolean, onProfessionChange: (String) -> Unit) {
     val context = LocalContext.current
     val wordLimit = 500
 
@@ -478,7 +508,7 @@ fun ProfessionTextField(profession: String, isEditing: Boolean, onProfessionChan
     }
 
     OutlinedTextField(
-        value = profession,
+        value = summary,
         onValueChange = { newText ->
             val wordCount = getWordCount(newText)
             if (wordCount <= wordLimit) {
